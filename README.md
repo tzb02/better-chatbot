@@ -4,7 +4,7 @@
 [![Local First](https://img.shields.io/badge/Local-First-blue)](https://localfirstweb.dev/)
 [![Discord](https://img.shields.io/discord/1374047276074537103?label=Discord&logo=discord&color=5865F2)](https://discord.gg/gCRu69Upnp)
 
-[![Deploy with Vercel](https://vercel.com/button)](<https://vercel.com/new/clone?repository-url=https://github.com/cgoinglove/better-chatbot&env=BETTER_AUTH_SECRET&env=OPENAI_API_KEY&env=GOOGLE_GENERATIVE_AI_API_KEY&env=ANTHROPIC_API_KEY&envDescription=BETTER_AUTH_SECRET+is+required+(enter+any+secret+value).+At+least+one+LLM+provider+API+key+(OpenAI,+Claude,+or+Google)+is+required,+but+you+can+add+all+of+them.+See+the+link+below+for+details.&envLink=https://github.com/cgoinglove/better-chatbot/blob/main/.env.example&demo-title=better-chatbot&demo-description=An+Open-Source+Chatbot+Template+Built+With+Next.js+and+the+AI+SDK+by+Vercel.&products=[{"type":"integration","protocol":"storage","productSlug":"neon","integrationSlug":"neon"},{"type":"integration","protocol":"storage","productSlug":"upstash-kv","integrationSlug":"upstash"}]>)
+[![Deploy with Vercel](https://vercel.com/button)](<https://vercel.com/new/clone?repository-url=https://github.com/cgoinglove/better-chatbot&env=BETTER_AUTH_SECRET&env=OPENAI_API_KEY&env=GOOGLE_GENERATIVE_AI_API_KEY&env=ANTHROPIC_API_KEY&envDescription=BETTER_AUTH_SECRET+is+required+(enter+any+secret+value).+At+least+one+LLM+provider+API+key+(OpenAI,+Claude,+or+Google)+is+required,+but+you+can+add+all+of+them.+See+the+link+below+for+details.&envLink=https://github.com/cgoinglove/better-chatbot/blob/main/.env.example&demo-title=better-chatbot&demo-description=An+Open-Source+Chatbot+Template+Built+With+Next.js+and+the+AI+SDK+by+Vercel.&products=[{"type":"integration","protocol":"storage","productSlug":"neon","integrationSlug":"neon"},{"type":"integration","protocol":"storage","productSlug":"upstash-kv","integrationSlug":"upstash"},{"type":"blob"}]>)
 
 🚀 **[Live Demo](https://better-chatbot-demo.vercel.app/)** | See the experience in action in the [preview](#preview) below!
 
@@ -83,6 +83,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to get start
   - [🔌 MCP Server Setup \& Tool Testing](#-mcp-server-setup--tool-testing)
   - [🐳 Docker Hosting Guide](#-docker-hosting-guide)
   - [▲ Vercel Hosting Guide](#-vercel-hosting-guide)
+  - [🗂️ File Storage Drivers](#️-file-storage-drivers)
   - [🎯 System Prompts \& Chat Customization](#-system-prompts--chat-customization)
   - [🔐 OAuth Sign-In Setup](#-oauth-sign-in-setup)
   - [🕵🏿 Adding openAI like providers](#-adding-openai-like-providers)
@@ -330,6 +331,19 @@ EXA_API_KEY=your_exa_api_key_here
 # Whether to use file-based MCP config (default: false)
 FILE_BASED_MCP_CONFIG=false
 
+# === File Storage ===
+# Vercel Blob is the default storage driver (works in both local dev and production)
+# Pull the token locally with `vercel env pull`
+FILE_STORAGE_TYPE=vercel-blob
+FILE_STORAGE_PREFIX=uploads
+BLOB_READ_WRITE_TOKEN=
+
+# -- S3 (coming soon) --
+# FILE_STORAGE_TYPE=s3
+# FILE_STORAGE_PREFIX=uploads
+# FILE_STORAGE_S3_BUCKET=
+# FILE_STORAGE_S3_REGION=
+
 # (Optional)
 # === OAuth Settings ===
 # Fill in these values only if you want to enable Google/GitHub/Microsoft login
@@ -378,6 +392,10 @@ Step-by-step setup guides for running and configuring better-chatbot.
 
 - Deploy the chatbot to Vercel with simple setup steps for production use.
 
+#### [🗂️ File Storage Drivers](./docs/tips-guides/file-storage.md)
+
+- Cloud-based file storage with Vercel Blob (default) for seamless uploads in both development and production. S3 support coming soon.
+
 #### [🎯 System Prompts & Chat Customization](./docs/tips-guides/system-prompts-and-customization.md)
 
 - Personalize your chatbot experience with custom system prompts, user preferences, and MCP tool instructions
@@ -405,7 +423,8 @@ Step-by-step setup guides for running and configuring better-chatbot.
 
 Planned features coming soon to better-chatbot:
 
-- [ ] **File Attach & Image Generation**
+- [x] **File Upload & Storage** (Vercel Blob integration)
+- [ ] **Image Generation**
 - [ ] **Collaborative Document Editing** (like OpenAI Canvas: user & assistant co-editing)
 - [ ] **RAG (Retrieval-Augmented Generation)**
 - [ ] **Web-based Compute** (with [WebContainers](https://webcontainers.io) integration)
