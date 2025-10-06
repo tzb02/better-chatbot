@@ -23,7 +23,7 @@ Database, file storage, and caching are all available on free tiers.
    - **Redis (Upstash KV)**
      All of these are available with free-tier plans.
 
-   <img width="1329" alt="step3" src="https://github.com/user-attachments/assets/d0f3848e-e45b-4c20-843e-7c452c297e51" />
+   <img width="1156" height="876" alt="step3" src="https://github.com/user-attachments/assets/55b2de40-9006-42f8-89e2-dbfc511c4bc6" />
 
 4. **Set Environment Variables.**
 
@@ -31,7 +31,7 @@ Database, file storage, and caching are all available on free tiers.
    - Enter your **AI Provider API Key(s)**. Only one is required to start (OpenAI, Google Gemini, or Anthropic Claude).
    - You can use placeholder values and update them later in **Project Settings > Environments** after deployment.
 
-    <img width="1469" alt="step4" src="https://github.com/user-attachments/assets/a0ca9aab-e32a-42ff-8714-707cda387c2a" />
+    <img width="989" height="607" alt="step4" src="https://github.com/user-attachments/assets/1778265e-da49-433b-8724-88e8b71dea21" />
 
 5. **Deploy your project.**
    Once everything is set, Vercel will automatically build and deploy your project.
