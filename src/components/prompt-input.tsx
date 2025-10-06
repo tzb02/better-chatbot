@@ -5,8 +5,9 @@ import {
   ChevronDown,
   CornerRightUp,
   FileIcon,
-  ImageIcon,
+  ImagesIcon,
   Loader2,
+  PaperclipIcon,
   PlusIcon,
   Square,
   XIcon,
@@ -39,6 +40,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "ui/dropdown-menu";
 import { useFileUpload } from "@/hooks/use-presigned-upload";
@@ -48,6 +53,7 @@ import { generateUUID, cn } from "@/lib/utils";
 import { EMOJI_DATA } from "lib/const";
 import { AgentSummary } from "app-types/agent";
 import { FileUIPart } from "ai";
+import { useChatModels } from "@/hooks/queries/use-chat-models";
 
 interface PromptInputProps {
   placeholder?: string;
@@ -91,15 +97,33 @@ export default function PromptInput({
   const [isUploadDropdownOpen, setIsUploadDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { upload } = useFileUpload();
+  const { data: providers } = useChatModels();
 
-  const [globalModel, threadMentions, threadFiles, appStoreMutate] = appStore(
+  const [
+    globalModel,
+    threadMentions,
+    threadFiles,
+    threadImageToolModel,
+    appStoreMutate,
+  ] = appStore(
     useShallow((state) => [
       state.chatModel,
       state.threadMentions,
       state.threadFiles,
+      state.threadImageToolModel,
       state.mutate,
     ]),
   );
+
+  const modelInfo = useMemo(() => {
+    const provider = providers?.find(
+      (provider) => provider.provider === globalModel?.provider,
+    );
+    const model = provider?.models.find(
+      (model) => model.name === globalModel?.model,
+    );
+    return model;
+  }, [providers, globalModel]);
 
   const mentions = useMemo<ChatMention[]>(() => {
     if (!threadId) return [];
@@ -110,6 +134,11 @@ export default function PromptInput({
     if (!threadId) return [];
     return threadFiles[threadId] ?? [];
   }, [threadFiles, threadId]);
+
+  const imageToolModel = useMemo(() => {
+    if (!threadId) return undefined;
+    return threadImageToolModel[threadId];
+  }, [threadImageToolModel, threadId]);
 
   const chatModel = useMemo(() => {
     return model ?? globalModel;
@@ -240,7 +269,7 @@ export default function PromptInput({
 
           toast.success(t("imageUploadedSuccessfully"));
         } else {
-          // Remove failed upload
+          // Failed to upload - remove the file
           appStoreMutate((prev) => ({
             threadFiles: {
               ...prev.threadFiles,
@@ -251,18 +280,27 @@ export default function PromptInput({
           }));
         }
       } catch (error) {
-        // Remove failed upload
-        appStoreMutate((prev) => ({
-          threadFiles: {
-            ...prev.threadFiles,
-            [threadId]: (prev.threadFiles[threadId] ?? []).filter(
-              (f) => f.id !== fileId,
-            ),
-          },
-        }));
-
-        if (error instanceof Error && error.name !== "AbortError") {
-          toast.error(t("failedToUploadImage") || "Failed to upload image");
+        // Upload failed - remove the file
+        if (error instanceof Error && error.name === "AbortError") {
+          // Remove aborted upload
+          appStoreMutate((prev) => ({
+            threadFiles: {
+              ...prev.threadFiles,
+              [threadId]: (prev.threadFiles[threadId] ?? []).filter(
+                (f) => f.id !== fileId,
+              ),
+            },
+          }));
+        } else {
+          // For other errors, remove the file and show error
+          appStoreMutate((prev) => ({
+            threadFiles: {
+              ...prev.threadFiles,
+              [threadId]: (prev.threadFiles[threadId] ?? []).filter(
+                (f) => f.id !== fileId,
+              ),
+            },
+          }));
         }
       } finally {
         // Cleanup preview URL
@@ -276,6 +314,30 @@ export default function PromptInput({
       setIsUploadDropdownOpen(false);
     },
     [threadId, upload, appStoreMutate, t],
+  );
+
+  const handleGenerateImage = useCallback(
+    (provider?: "google") => {
+      if (!provider) {
+        appStoreMutate({
+          threadImageToolModel: {},
+        });
+      }
+      if (!threadId) return;
+
+      setIsUploadDropdownOpen(false);
+
+      appStoreMutate((prev) => ({
+        threadImageToolModel: {
+          ...prev.threadImageToolModel,
+          [threadId]: provider,
+        },
+      }));
+
+      // Focus on the input
+      editorRef.current?.commands.focus();
+    },
+    [threadId, editorRef],
   );
 
   const addMention = useCallback(
@@ -358,6 +420,7 @@ export default function PromptInput({
     if (isLoading) return;
     const userMessage = input?.trim() || "";
     if (userMessage.length === 0) return;
+
     setInput("");
     sendMessage({
       role: "user",
@@ -366,7 +429,7 @@ export default function PromptInput({
           (file) =>
             ({
               type: "file",
-              url: file.url,
+              url: file.url || file.dataUrl || "",
               mediaType: file.mimeType,
             }) as FileUIPart,
         ),
@@ -512,27 +575,60 @@ export default function PromptInput({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" side="top">
                     <DropdownMenuItem
+                      className="cursor-pointer"
+                      disabled={modelInfo?.isImageInputUnsupported}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <ImageIcon className="mr-2 size-4" />
+                      <PaperclipIcon className="mr-2 size-4" />
                       {t("uploadImage")}
                     </DropdownMenuItem>
+
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="cursor-pointer">
+                        <ImagesIcon className="mr-4 size-4 text-muted-foreground" />
+                        <span className="mr-4">{t("generateImage")}</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem
+                            disabled={modelInfo?.isToolCallUnsupported}
+                            onClick={() => handleGenerateImage("google")}
+                            className="cursor-pointer"
+                          >
+                            <GeminiIcon className="mr-2 size-4" />
+                            Gemini (Nano Banana)
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {!toolDisabled && (
-                  <>
-                    <ToolModeDropdown />
-                    <ToolSelectDropdown
-                      className="mx-1"
-                      align="start"
-                      side="top"
-                      onSelectWorkflow={onSelectWorkflow}
-                      onSelectAgent={onSelectAgent}
-                      mentions={mentions}
-                    />
-                  </>
-                )}
+                {!toolDisabled &&
+                  (imageToolModel ? (
+                    <Button
+                      variant={"ghost"}
+                      size={"sm"}
+                      className="rounded-full hover:bg-input! p-2! group/image-generator text-primary"
+                      onClick={() => handleGenerateImage()}
+                    >
+                      <ImagesIcon className="size-3.5" />
+                      {t("generateImage")}
+                      <XIcon className="size-3 group-hover/image-generator:opacity-100 opacity-0 transition-opacity duration-200" />
+                    </Button>
+                  ) : (
+                    <>
+                      <ToolModeDropdown />
+                      <ToolSelectDropdown
+                        className="mx-1"
+                        align="start"
+                        side="top"
+                        onSelectWorkflow={onSelectWorkflow}
+                        onSelectAgent={onSelectAgent}
+                        mentions={mentions}
+                      />
+                    </>
+                  ))}
 
                 <div className="flex-1" />
 
@@ -619,6 +715,8 @@ export default function PromptInput({
                     const isImage = file.mimeType.startsWith("image/");
                     const fileExtension =
                       file.name.split(".").pop()?.toUpperCase() || "FILE";
+                    const imageSrc =
+                      file.previewUrl || file.url || file.dataUrl || "";
 
                     return (
                       <div
@@ -628,7 +726,7 @@ export default function PromptInput({
                         {isImage ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
-                            src={file.previewUrl || file.url}
+                            src={imageSrc}
                             alt={file.name}
                             className="w-24 h-24 object-cover"
                           />

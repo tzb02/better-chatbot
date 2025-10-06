@@ -5,6 +5,7 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
+  Tool,
   UIMessage,
 } from "ai";
 
@@ -46,6 +47,8 @@ import {
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
 import { generateUUID } from "lib/utils";
+import { nanoBananaTool } from "lib/ai/tools/image";
+import { ImageToolName } from "lib/ai/tools";
 
 const logger = globalLogger.withDefaults({
   message: colorize("blackBright", `Chat API: `),
@@ -67,6 +70,7 @@ export async function POST(request: Request) {
       toolChoice,
       allowedAppDefaultToolkit,
       allowedMcpServers,
+      imageTool,
       mentions = [],
     } = chatApiSchemaRequestBodySchema.parse(json);
 
@@ -117,8 +121,12 @@ export async function POST(request: Request) {
       mentions.push(...agent.instructions.mentions);
     }
 
+    const useImageTool = Boolean(imageTool?.model);
+
     const isToolCallAllowed =
-      supportToolCall && (toolChoice != "none" || mentions.length > 0);
+      supportToolCall &&
+      (toolChoice != "none" || mentions.length > 0) &&
+      !useImageTool;
 
     const metadata: ChatMetadata = {
       agentId: agent?.id,
@@ -200,7 +208,13 @@ export async function POST(request: Request) {
           !supportToolCall && buildToolCallUnsupportedModelSystemPrompt,
         );
 
-        const vercelAITooles = safe({ ...MCP_TOOLS, ...WORKFLOW_TOOLS })
+        const IMAGE_TOOL: Record<string, Tool> = useImageTool
+          ? { [ImageToolName]: nanoBananaTool }
+          : {};
+        const vercelAITooles = safe({
+          ...MCP_TOOLS,
+          ...WORKFLOW_TOOLS,
+        })
           .map((t) => {
             const bindingTools =
               toolChoice === "manual" ||
@@ -210,6 +224,7 @@ export async function POST(request: Request) {
             return {
               ...bindingTools,
               ...APP_DEFAULT_TOOLS, // APP_DEFAULT_TOOLS Not Supported Manual
+              ...IMAGE_TOOL,
             };
           })
           .unwrap();
@@ -226,9 +241,13 @@ export async function POST(request: Request) {
         logger.info(
           `allowedMcpTools: ${allowedMcpTools.length ?? 0}, allowedAppDefaultToolkit: ${allowedAppDefaultToolkit?.length ?? 0}`,
         );
-        logger.info(
-          `binding tool count APP_DEFAULT: ${Object.keys(APP_DEFAULT_TOOLS ?? {}).length}, MCP: ${Object.keys(MCP_TOOLS ?? {}).length}, Workflow: ${Object.keys(WORKFLOW_TOOLS ?? {}).length}`,
-        );
+        if (useImageTool) {
+          logger.info(`binding tool count Image: ${imageTool?.model}`);
+        } else {
+          logger.info(
+            `binding tool count APP_DEFAULT: ${Object.keys(APP_DEFAULT_TOOLS ?? {}).length}, MCP: ${Object.keys(MCP_TOOLS ?? {}).length}, Workflow: ${Object.keys(WORKFLOW_TOOLS ?? {}).length}`,
+          );
+        }
         logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
 
         const result = streamText({
