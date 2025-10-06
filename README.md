@@ -444,6 +444,16 @@ Planned features coming soon to better-chatbot:
 
 💡 If you have suggestions or need specific features, please create an [issue](https://github.com/cgoinglove/better-chatbot/issues)!
 
+## 💖 Support
+
+If this project has been helpful to you, please consider supporting its development:
+
+- ⭐ **Star** this repository
+- 🐛 **Report** bugs and suggest features
+- 💰 **[Become a sponsor](https://github.com/sponsors/cgoinglove)** to support ongoing development
+
+Your support helps maintain and improve this project. Thank you! 🙏
+
 ## 🙌 Contributing
 
 We welcome all contributions! Bug reports, feature ideas, code improvements — everything helps us build the best local AI assistant.
