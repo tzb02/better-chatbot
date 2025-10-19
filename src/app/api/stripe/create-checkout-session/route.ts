@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getSession } from '@/lib/auth/server';
 import { StripeService } from '@/lib/services/stripe-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     const { paymentType } = await request.json();
 
@@ -23,14 +24,14 @@ export async function POST(request: NextRequest) {
       ? `${process.env.BETTER_AUTH_URL}/payment-cancelled`
       : `${process.env.BETTER_AUTH_URL}/payment-success`;
 
-    const session = await StripeService.createCheckoutSession({
+    const checkoutSession = await StripeService.createCheckoutSession({
       paymentType: paymentType as 'setup_fee' | 'subscription',
       userId: user.id,
       successUrl,
       cancelUrl,
     });
 
-    return Response.json({ url: session.url });
+    return Response.json({ url: checkoutSession.url });
   } catch (error) {
     console.error('Error creating checkout session:', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });

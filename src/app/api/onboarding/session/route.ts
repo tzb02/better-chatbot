@@ -1,23 +1,24 @@
 import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getSession } from '@/lib/auth/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
 import { OnboardingSessionTable } from '@/lib/db/pg/schema.pg';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
-    const [session] = await db
+    const [onboardingSession] = await db
       .select()
       .from(OnboardingSessionTable)
       .where(eq(OnboardingSessionTable.userId, user.id))
       .limit(1);
 
-    return Response.json({ session });
+    return Response.json({ session: onboardingSession });
   } catch (error) {
     console.error('Error fetching onboarding session:', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
@@ -26,10 +27,11 @@ export async function GET(_request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     const updates = await request.json();
 

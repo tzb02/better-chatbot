@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getSession } from '@/lib/auth/server';
 import { eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
 import { OrganizationTable, OrganizationMemberTable, OrganizationInvitationTable } from '@/lib/db/pg/schema.pg';
@@ -13,10 +13,11 @@ function generateSecureToken(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     const { email, role = 'subuser', permissions = [] } = await request.json();
 

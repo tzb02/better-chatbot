@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getSession } from '@/lib/auth/server';
 import { eq, and, gt, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
 import { OrganizationInvitationTable, OrganizationMemberTable, OrganizationTable } from '@/lib/db/pg/schema.pg';
@@ -12,10 +12,11 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invitation token is required' }, { status: 400 });
     }
 
-    const user = await getCurrentUser();
-    if (!user) {
+    const session = await getSession();
+    if (!session?.user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     // Find invitation
     const [invitation] = await db
