@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import { safe } from "ts-safe";
 import { UserZodSchema } from "app-types/user";
 import { existsByEmailAction, signUpAction } from "@/app/api/auth/actions";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 export default function EmailSignUp({
@@ -28,7 +27,6 @@ export default function EmailSignUp({
 }) {
   const t = useTranslations();
   const [step, setStep] = useState(1);
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useObjectState({
     email: "",
@@ -40,6 +38,7 @@ export default function EmailSignUp({
     t("Auth.SignUp.step1"),
     t("Auth.SignUp.step2"),
     t("Auth.SignUp.step3"),
+    t("Auth.SignUp.step4"),
   ];
 
   const safeProcessWithLoading = function <T>(fn: () => Promise<T>) {
@@ -86,7 +85,7 @@ export default function EmailSignUp({
       return;
     }
 
-    // server side validation and admin user creation if first user
+    // server side validation and account creation
     const { success, message } = await safeProcessWithLoading(() =>
       signUpAction({
         email: formData.email,
@@ -96,9 +95,29 @@ export default function EmailSignUp({
     ).unwrap();
     if (success) {
       toast.success(message);
-      router.push("/");
+      setStep(4); // Move to payment step
     } else {
       toast.error(message);
+    }
+  };
+
+  const handlePayment = async () => {
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentType: 'setup_fee' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Failed to start payment process. Please try again.');
     }
   };
 
@@ -116,7 +135,7 @@ export default function EmailSignUp({
             <div className="h-2 w-full relative bg-input">
               <div
                 style={{
-                  width: `${(step / 3) * 100}%`,
+                  width: `${(step / 4) * 100}%`,
                 }}
                 className="h-full bg-primary transition-all duration-300"
               ></div>
@@ -197,6 +216,42 @@ export default function EmailSignUp({
               />
             </div>
           )}
+          {step === 4 && (
+            <div className={cn("flex flex-col gap-4")}>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-2">Complete Your Setup</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose your payment plan to get started
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="border rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">Setup Fee</span>
+                    <span className="text-lg font-bold">$99</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    One-time payment for account setup and GoHighLevel integration
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-950">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">Premium Subscription</span>
+                    <span className="text-lg font-bold">$49/month</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    30-day free trial, then $49/month for full access
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground text-center">
+                You'll be redirected to Stripe to complete your payment securely.
+              </div>
+            </div>
+          )}
           <p className="text-muted-foreground text-xs mb-6">
             {steps[step - 1]}
           </p>
@@ -209,9 +264,10 @@ export default function EmailSignUp({
                 if (step === 1) successEmailStep();
                 if (step === 2) successNameStep();
                 if (step === 3) successPasswordStep();
+                if (step === 4) handlePayment();
               }}
             >
-              {step === 3 ? t("Auth.SignUp.createAccount") : t("Common.next")}
+              {step === 3 ? t("Auth.SignUp.createAccount") : step === 4 ? "Pay Setup Fee - $99" : t("Common.next")}
               {isLoading && <Loader className="size-4 ml-2" />}
             </Button>
             <Button

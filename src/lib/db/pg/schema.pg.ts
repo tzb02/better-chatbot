@@ -12,6 +12,7 @@ import {
   unique,
   varchar,
   index,
+  integer,
 } from "drizzle-orm/pg-core";
 import { isNotNull } from "drizzle-orm";
 import { DBWorkflow, DBEdge, DBNode } from "app-types/workflow";
@@ -374,3 +375,129 @@ export const ChatExportCommentTable = pgTable("chat_export_comment", {
 export type ArchiveEntity = typeof ArchiveTable.$inferSelect;
 export type ArchiveItemEntity = typeof ArchiveItemTable.$inferSelect;
 export type BookmarkEntity = typeof BookmarkTable.$inferSelect;
+
+// Payment and Subscription Tables
+export const UserPaymentStatusTable = pgTable("user_payment_status", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => UserTable.id, { onDelete: "cascade" }),
+  hasCompletedPayment: boolean("has_completed_payment").default(false).notNull(),
+  setupFeePaid: boolean("setup_fee_paid").default(false).notNull(),
+  subscriptionActive: boolean("subscription_active").default(false).notNull(),
+  trialEndsAt: timestamp("trial_ends_at"),
+  lastPaymentAt: timestamp("last_payment_at"),
+  paymentFailureCount: integer("payment_failure_count").default(0).notNull(),
+  blockedAt: timestamp("blocked_at"),
+  blockedReason: text("blocked_reason"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const PaymentRecordTable = pgTable("payment_record", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+  stripePaymentIntentId: text("stripe_payment_intent_id").notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  amount: integer("amount").notNull(), // in cents
+  currency: varchar("currency", { length: 3 }).default("usd").notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  paymentType: varchar("payment_type", { length: 50 }).notNull(), // 'setup_fee', 'subscription', 'additional_seats'
+  metadata: json("metadata").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const SubscriptionTable = pgTable("subscription", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripePriceId: text("stripe_price_id"),
+  status: varchar("status", { length: 50 }).notNull(),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const OnboardingSessionTable = pgTable("onboarding_session", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => UserTable.id, { onDelete: "cascade" }),
+  currentStep: integer("current_step").default(1).notNull(),
+  maxStepReached: integer("max_step_reached").default(1).notNull(),
+  isCompleted: boolean("is_completed").default(false).notNull(),
+  ghlApiKey: text("ghl_api_key"),
+  ghlLocationId: text("ghl_location_id"),
+  ghlPrivateKey: text("ghl_private_key"),
+  mcpServerGenerated: boolean("mcp_server_generated").default(false).notNull(),
+  connectionTested: boolean("connection_tested").default(false).notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Organization Tables
+export const OrganizationTable = pgTable("organization", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  ownerId: uuid("owner_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  subscriptionId: text("subscription_id").unique(),
+  maxSeats: integer("max_seats").notNull().default(1),
+  usedSeats: integer("used_seats").notNull().default(1),
+  settings: json("settings").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const OrganizationMemberTable = pgTable("organization_member", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => OrganizationTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 20 }).notNull().default("subuser"), // 'account_owner' | 'subuser'
+  permissions: json("permissions").default([]),
+  joinedAt: timestamp("joined_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  invitedBy: uuid("invited_by").references(() => UserTable.id),
+  status: varchar("status", { length: 20 }).notNull().default("active"), // 'active' | 'suspended' | 'pending'
+}, (table) => [
+  unique("organization_member_org_user_unique").on(table.organizationId, table.userId),
+]);
+
+export const OrganizationInvitationTable = pgTable("organization_invitation", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => OrganizationTable.id, { onDelete: "cascade" }),
+  email: varchar("email", { length: 255 }).notNull(),
+  invitedBy: uuid("invited_by").notNull().references(() => UserTable.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  role: varchar("role", { length: 20 }).notNull().default("subuser"),
+  permissions: json("permissions").default([]),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // 'pending' | 'accepted' | 'declined' | 'expired'
+  expiresAt: timestamp("expires_at").notNull(),
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const McpServerPermissionTable = pgTable("mcp_server_permission", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  mcpServerId: uuid("mcp_server_id").notNull().references(() => McpServerTable.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").references(() => OrganizationTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => UserTable.id, { onDelete: "cascade" }),
+  permissionType: varchar("permission_type", { length: 20 }).notNull(), // 'owner' | 'shared_org' | 'shared_user'
+  permissions: json("permissions").default({ canUse: true }),
+  grantedBy: uuid("granted_by").notNull().references(() => UserTable.id),
+  grantedAt: timestamp("granted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (_table) => [
+  // Ensure either organizationId or userId is set, but not both
+  sql`CHECK ((organization_id IS NOT NULL AND user_id IS NULL) OR (organization_id IS NULL AND user_id IS NOT NULL))` as any,
+]);
+
+// Type exports for new tables
+export type UserPaymentStatusEntity = typeof UserPaymentStatusTable.$inferSelect;
+export type PaymentRecordEntity = typeof PaymentRecordTable.$inferSelect;
+export type SubscriptionEntity = typeof SubscriptionTable.$inferSelect;
+export type OnboardingSessionEntity = typeof OnboardingSessionTable.$inferSelect;
+export type OrganizationEntity = typeof OrganizationTable.$inferSelect;
+export type OrganizationMemberEntity = typeof OrganizationMemberTable.$inferSelect;
+export type OrganizationInvitationEntity = typeof OrganizationInvitationTable.$inferSelect;
+export type McpServerPermissionEntity = typeof McpServerPermissionTable.$inferSelect;
