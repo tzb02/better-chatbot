@@ -103,21 +103,21 @@ export default function EmailSignUp({
 
   const handlePayment = async () => {
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentType: 'setup_fee' }),
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentType: "setup_fee" }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        throw new Error("Failed to create checkout session");
       }
 
       const { url } = await response.json();
       window.location.href = url;
     } catch (error) {
-      console.error('Payment error:', error);
-      toast.error('Failed to start payment process. Please try again.');
+      console.error("Payment error:", error);
+      toast.error("Failed to start payment process. Please try again.");
     }
   };
 
@@ -219,7 +219,9 @@ export default function EmailSignUp({
           {step === 4 && (
             <div className={cn("flex flex-col gap-4")}>
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">Complete Your Setup</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Complete Your Setup
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Choose your payment plan to get started
                 </p>
@@ -232,7 +234,8 @@ export default function EmailSignUp({
                     <span className="text-lg font-bold">$99</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    One-time payment for account setup and GoHighLevel integration
+                    One-time payment for account setup and GoHighLevel
+                    integration
                   </p>
                 </div>
 
@@ -248,7 +251,8 @@ export default function EmailSignUp({
               </div>
 
               <div className="text-xs text-muted-foreground text-center">
-                You'll be redirected to Stripe to complete your payment securely.
+                You&apos;ll be redirected to Stripe to complete your payment
+                securely.
               </div>
             </div>
           )}
@@ -267,7 +271,11 @@ export default function EmailSignUp({
                 if (step === 4) handlePayment();
               }}
             >
-              {step === 3 ? t("Auth.SignUp.createAccount") : step === 4 ? "Pay Setup Fee - $99" : t("Common.next")}
+              {step === 3
+                ? t("Auth.SignUp.createAccount")
+                : step === 4
+                  ? "Pay Setup Fee - $99"
+                  : t("Common.next")}
               {isLoading && <Loader className="size-4 ml-2" />}
             </Button>
             <Button

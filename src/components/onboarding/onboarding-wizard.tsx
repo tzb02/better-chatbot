@@ -1,27 +1,36 @@
 "use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useOnboardingSession } from '@/hooks/use-onboarding-session';
-import { Loader, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useOnboardingSession } from "@/hooks/use-onboarding-session";
+import { Loader, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 const STEPS = [
-  { id: 1, title: 'Welcome', description: 'Introduction to the platform' },
-  { id: 2, title: 'GoHighLevel Setup', description: 'API key configuration' },
-  { id: 3, title: 'Private Key', description: 'Secure API access setup' },
-  { id: 4, title: 'Location ID', description: 'GHL location configuration' },
-  { id: 5, title: 'Test Connection', description: 'Verify credentials work' },
-  { id: 6, title: 'MCP Server', description: 'Generate your MCP server' },
-  { id: 7, title: 'Complete', description: 'Setup finished!' },
+  { id: 1, title: "Welcome", description: "Introduction to the platform" },
+  { id: 2, title: "GoHighLevel Setup", description: "API key configuration" },
+  { id: 3, title: "Private Key", description: "Secure API access setup" },
+  { id: 4, title: "Location ID", description: "GHL location configuration" },
+  { id: 5, title: "Test Connection", description: "Verify credentials work" },
+  { id: 6, title: "MCP Server", description: "Generate your MCP server" },
+  { id: 7, title: "Complete", description: "Setup finished!" },
 ];
 
 export function OnboardingWizard() {
-  const { session, loading, updateSession, testGhlConnection, generateMcpServer, completeOnboarding, nextStep, previousStep } = useOnboardingSession();
+  const {
+    session,
+    loading,
+    updateSession,
+    testGhlConnection,
+    generateMcpServer,
+    completeOnboarding,
+    nextStep,
+    previousStep,
+  } = useOnboardingSession();
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (loading) {
@@ -37,23 +46,22 @@ export function OnboardingWizard() {
   const handleNext = async () => {
     if (currentStep === 7) {
       await completeOnboarding();
-      toast.success('Onboarding completed!');
+      toast.success("Onboarding completed!");
       return;
     }
 
     if (currentStep === 5) {
-      // Test connection before proceeding
       setIsProcessing(true);
       try {
         const result = await testGhlConnection();
         if (result?.success) {
           await nextStep();
-          toast.success('Connection test successful!');
+          toast.success("Connection test successful!");
         } else {
-          toast.error('Connection test failed. Please check your credentials.');
+          toast.error("Connection test failed. Please check your credentials.");
         }
       } catch (_error) {
-        toast.error('Failed to test connection');
+        toast.error("Failed to test connection");
       } finally {
         setIsProcessing(false);
       }
@@ -61,18 +69,17 @@ export function OnboardingWizard() {
     }
 
     if (currentStep === 6) {
-      // Generate MCP server before completing
       setIsProcessing(true);
       try {
         const result = await generateMcpServer();
         if (result?.success) {
           await nextStep();
-          toast.success('MCP server generated successfully!');
+          toast.success("MCP server generated successfully!");
         } else {
-          toast.error('Failed to generate MCP server');
+          toast.error("Failed to generate MCP server");
         }
       } catch (_error) {
-        toast.error('Failed to generate MCP server');
+        toast.error("Failed to generate MCP server");
       } finally {
         setIsProcessing(false);
       }
@@ -89,13 +96,16 @@ export function OnboardingWizard() {
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold">Welcome to OfficeManagerGPT!</h2>
             <p className="text-muted-foreground">
-              Let's get you set up with GoHighLevel integration and AI automation.
-              This will take just a few minutes.
+              {
+                "Let's get you set up with GoHighLevel integration and AI automation."
+              }
+              {" This will take just a few minutes."}
             </p>
             <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
               <p className="text-sm">
-                You'll configure your GoHighLevel credentials and we'll generate
-                a custom MCP server for seamless AI automation.
+                {
+                  "You'll configure your GoHighLevel credentials and we'll generate a custom MCP server for seamless AI automation."
+                }
               </p>
             </div>
           </div>
@@ -106,7 +116,8 @@ export function OnboardingWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">GoHighLevel API Key</h3>
             <p className="text-sm text-muted-foreground">
-              Enter your GoHighLevel API key. You can find this in your GHL dashboard under Settings → API Keys.
+              Enter your GoHighLevel API key. You can find this in your GHL
+              dashboard under Settings → API Keys.
             </p>
             <div className="space-y-2">
               <Label htmlFor="apiKey">API Key</Label>
@@ -114,7 +125,7 @@ export function OnboardingWizard() {
                 id="apiKey"
                 type="password"
                 placeholder="Enter your GHL API key"
-                value={session?.ghlApiKey || ''}
+                value={session?.ghlApiKey || ""}
                 onChange={(e) => updateSession({ ghlApiKey: e.target.value })}
               />
             </div>
@@ -133,8 +144,10 @@ export function OnboardingWizard() {
               <Textarea
                 id="privateKey"
                 placeholder="Enter your GHL private key"
-                value={session?.ghlPrivateKey || ''}
-                onChange={(e) => updateSession({ ghlPrivateKey: e.target.value })}
+                value={session?.ghlPrivateKey || ""}
+                onChange={(e) =>
+                  updateSession({ ghlPrivateKey: e.target.value })
+                }
                 rows={4}
               />
             </div>
@@ -146,15 +159,18 @@ export function OnboardingWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Location ID</h3>
             <p className="text-sm text-muted-foreground">
-              Enter your GoHighLevel location ID. This identifies your specific GHL account location.
+              Enter your GoHighLevel location ID. This identifies your specific
+              GHL account location.
             </p>
             <div className="space-y-2">
               <Label htmlFor="locationId">Location ID</Label>
               <Input
                 id="locationId"
                 placeholder="Enter your GHL location ID"
-                value={session?.ghlLocationId || ''}
-                onChange={(e) => updateSession({ ghlLocationId: e.target.value })}
+                value={session?.ghlLocationId || ""}
+                onChange={(e) =>
+                  updateSession({ ghlLocationId: e.target.value })
+                }
               />
             </div>
           </div>
@@ -165,12 +181,15 @@ export function OnboardingWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Test Connection</h3>
             <p className="text-sm text-muted-foreground">
-              Let's verify that your GoHighLevel credentials are working correctly.
+              {
+                "Let's verify that your GoHighLevel credentials are working correctly."
+              }
             </p>
             <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
               <p className="text-sm">
-                We'll test the connection using the credentials you provided.
-                This ensures everything is set up correctly before proceeding.
+                {
+                  "We'll test the connection using the credentials you provided. This ensures everything is set up correctly before proceeding."
+                }
               </p>
             </div>
             {session?.connectionTested && (
@@ -187,18 +206,23 @@ export function OnboardingWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Generate MCP Server</h3>
             <p className="text-sm text-muted-foreground">
-              Now we'll create your custom MCP server based on your GoHighLevel configuration.
+              {
+                "Now we'll create your custom MCP server based on your GoHighLevel configuration."
+              }
             </p>
             <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
               <p className="text-sm">
-                This server will enable seamless AI automation with your GoHighLevel account,
-                allowing you to manage contacts, campaigns, and more through natural language commands.
+                {
+                  "This server will enable seamless AI automation with your GoHighLevel account, allowing you to manage contacts, campaigns, and more through natural language commands."
+                }
               </p>
             </div>
             {session?.mcpServerGenerated && (
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">MCP server generated successfully</span>
+                <span className="text-sm">
+                  MCP server generated successfully
+                </span>
               </div>
             )}
           </div>
@@ -212,13 +236,15 @@ export function OnboardingWizard() {
             </div>
             <h2 className="text-2xl font-bold">Setup Complete!</h2>
             <p className="text-muted-foreground">
-              Your OfficeManagerGPT account is now fully configured with GoHighLevel integration.
-              You can start using AI automation right away.
+              {
+                "Your OfficeManagerGPT account is now fully configured with GoHighLevel integration. You can start using AI automation right away."
+              }
             </p>
             <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
               <p className="text-sm">
-                Welcome to the future of business automation!
-                Your MCP server is ready and you have full access to all premium features.
+                {
+                  "Welcome to the future of business automation! Your MCP server is ready and you have full access to all premium features."
+                }
               </p>
             </div>
           </div>
@@ -259,12 +285,9 @@ export function OnboardingWizard() {
               Previous
             </Button>
 
-            <Button
-              onClick={handleNext}
-              disabled={isProcessing}
-            >
+            <Button onClick={handleNext} disabled={isProcessing}>
               {isProcessing && <Loader className="w-4 h-4 mr-2 animate-spin" />}
-              {currentStep === 7 ? 'Complete Setup' : 'Next'}
+              {currentStep === 7 ? "Complete Setup" : "Next"}
               {currentStep < 7 && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           </div>
