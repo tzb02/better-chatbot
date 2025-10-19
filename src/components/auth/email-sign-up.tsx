@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,14 @@ export default function EmailSignUp({
     name: "",
     password: "",
   });
+
+  // Debug step changes
+  useEffect(() => {
+    console.log(`[DEBUG] Step changed to: ${step}`);
+    if (step === 4) {
+      console.log("[DEBUG] Step 4 reached - payment step should be visible");
+    }
+  }, [step]);
 
   const steps = [
     t("Auth.SignUp.step1"),
@@ -76,14 +84,19 @@ export default function EmailSignUp({
   };
 
   const successPasswordStep = async () => {
+    console.log("[DEBUG] successPasswordStep called");
+
     // client side validation
     const { success: passwordSuccess, error: passwordError } =
       UserZodSchema.shape.password.safeParse(formData.password);
     if (!passwordSuccess) {
       const errorMessages = passwordError.issues.map((e) => e.message);
+      console.log("[DEBUG] Password validation failed:", errorMessages);
       toast.error(errorMessages.join("\n\n"));
       return;
     }
+
+    console.log("[DEBUG] Password validation passed, calling signUpAction");
 
     // server side validation and account creation
     const { success, message } = await safeProcessWithLoading(() =>
@@ -93,30 +106,45 @@ export default function EmailSignUp({
         password: formData.password,
       }),
     ).unwrap();
+
+    console.log("[DEBUG] signUpAction response:", { success, message });
+
     if (success) {
+      console.log("[DEBUG] Sign up successful, moving to step 4 (payment)");
       toast.success(message);
       setStep(4); // Move to payment step
     } else {
+      console.log("[DEBUG] Sign up failed:", message);
       toast.error(message);
     }
   };
 
   const handlePayment = async () => {
+    console.log("[DEBUG] handlePayment called - starting payment process");
+
     try {
+      console.log("[DEBUG] Calling /api/stripe/create-checkout-session");
       const response = await fetch("/api/stripe/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paymentType: "setup_fee" }),
       });
 
+      console.log("[DEBUG] API response status:", response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log("[DEBUG] API error response:", errorText);
         throw new Error("Failed to create checkout session");
       }
 
       const { url } = await response.json();
+      console.log("[DEBUG] Received checkout URL:", url);
+
+      console.log("[DEBUG] Redirecting to:", url);
       window.location.href = url;
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error("[DEBUG] Payment error:", error);
       toast.error("Failed to start payment process. Please try again.");
     }
   };
@@ -225,6 +253,9 @@ export default function EmailSignUp({
                 <p className="text-sm text-muted-foreground mb-4">
                   Choose your payment plan to get started
                 </p>
+                <p className="text-xs text-green-600 mb-2">
+                  [DEBUG] Step 4 rendered successfully
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -265,10 +296,14 @@ export default function EmailSignUp({
               disabled={isLoading}
               className="w-1/2"
               onClick={() => {
+                console.log(`[DEBUG] Button clicked for step ${step}`);
                 if (step === 1) successEmailStep();
                 if (step === 2) successNameStep();
                 if (step === 3) successPasswordStep();
-                if (step === 4) handlePayment();
+                if (step === 4) {
+                  console.log("[DEBUG] Calling handlePayment from button click");
+                  handlePayment();
+                }
               }}
             >
               {step === 3

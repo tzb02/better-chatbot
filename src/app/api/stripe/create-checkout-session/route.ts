@@ -16,13 +16,15 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invalid payment type' }, { status: 400 });
     }
 
+    const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
+
     const successUrl = paymentType === 'setup_fee'
-      ? `${process.env.BETTER_AUTH_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`
-      : `${process.env.BETTER_AUTH_URL}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+      ? `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`
+      : `${baseUrl}/api/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
 
     const cancelUrl = paymentType === 'setup_fee'
-      ? `${process.env.BETTER_AUTH_URL}/payment-cancelled`
-      : `${process.env.BETTER_AUTH_URL}/payment-success`;
+      ? `${baseUrl}/payment-cancelled`
+      : `${baseUrl}/payment-success`;
 
     const checkoutSession = await StripeService.createCheckoutSession({
       paymentType: paymentType as 'setup_fee' | 'subscription',

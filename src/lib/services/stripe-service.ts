@@ -65,12 +65,31 @@ export class StripeService {
   }) {
     const { paymentType, userId, successUrl, cancelUrl, allowPromotionCodes = true } = params;
 
+    // Check if Stripe is properly configured
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const priceId = paymentType === 'setup_fee'
+      ? process.env.STRIPE_SETUP_FEE_PRICE_ID
+      : process.env.STRIPE_SUBSCRIPTION_PRICE_ID;
+
+    // If Stripe is not configured, return a mock success response for development
+    if (!secretKey || !priceId) {
+      console.log(`[DEV MODE] Stripe not configured, bypassing ${paymentType} payment for user ${userId}`);
+
+      // Return a mock checkout session URL that redirects to success
+      return {
+        url: paymentType === 'setup_fee'
+          ? successUrl.replace('{CHECKOUT_SESSION_ID}', 'dev_mock_session_id')
+          : successUrl.replace('{CHECKOUT_SESSION_ID}', 'dev_mock_session_id'),
+        id: 'dev_mock_session_id'
+      };
+    }
+
     let sessionConfig: Stripe.Checkout.SessionCreateParams;
 
     if (paymentType === 'setup_fee') {
       sessionConfig = {
         line_items: [{
-          price: process.env.STRIPE_SETUP_FEE_PRICE_ID,
+          price: priceId,
           quantity: 1,
         }],
         mode: 'payment',
@@ -85,7 +104,7 @@ export class StripeService {
     } else if (paymentType === 'subscription') {
       sessionConfig = {
         line_items: [{
-          price: process.env.STRIPE_SUBSCRIPTION_PRICE_ID,
+          price: priceId,
           quantity: 1,
         }],
         mode: 'subscription',
