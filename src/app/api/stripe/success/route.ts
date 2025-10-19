@@ -3,9 +3,21 @@ import Stripe from 'stripe';
 import { StripeService } from '@/lib/services/stripe-service';
 import { PaymentStatusService } from '@/lib/services/payment-status-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
-});
+// Initialize Stripe lazily to avoid build-time issues
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripe = new Stripe(secretKey, {
+      apiVersion: '2025-09-30.clover',
+    });
+  }
+  return stripe;
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -17,7 +29,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await getStripe().checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === 'paid') {
       // Handle successful subscription payment
@@ -38,7 +50,7 @@ async function handleSubscriptionSuccess(session: Stripe.Checkout.Session) {
   if (!userId) return;
 
   // Get subscription details
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  const subscription = await getStripe().subscriptions.retrieve(session.subscription as string);
 
   // Record subscription
   await StripeService.recordSubscription({

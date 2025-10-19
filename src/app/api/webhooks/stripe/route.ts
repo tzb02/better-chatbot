@@ -7,9 +7,21 @@ import { StripeService } from '@/lib/services/stripe-service';
 import { PaymentStatusService } from '@/lib/services/payment-status-service';
 import { sendWelcomeEmail } from '@/lib/services/email-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
-});
+// Initialize Stripe lazily to avoid build-time issues
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripe = new Stripe(secretKey, {
+      apiVersion: '2025-09-30.clover',
+    });
+  }
+  return stripe;
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -18,7 +30,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
     return Response.json({ error: 'Invalid signature' }, { status: 400 });
@@ -61,7 +73,7 @@ export async function POST(request: NextRequest) {
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   console.log('Processing payment_intent.succeeded:', paymentIntent.id);
 
-  const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
+  const customer = await getStripe().customers.retrieve(paymentIntent.customer as string);
   const userEmail = (customer as any).email;
 
   if (!userEmail) {
@@ -110,7 +122,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   console.log('Processing customer.subscription.created:', subscription.id);
 
-  const customer = await stripe.customers.retrieve(subscription.customer as string);
+  const customer = await getStripe().customers.retrieve(subscription.customer as string);
   const userEmail = (customer as any).email;
 
   if (!userEmail) return;
@@ -180,7 +192,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
   // Handle failed payments
   if (invoice.customer) {
-    const customer = await stripe.customers.retrieve(invoice.customer as string);
+    const customer = await getStripe().customers.retrieve(invoice.customer as string);
     const userEmail = (customer as any).email;
 
     if (userEmail) {

@@ -3,9 +3,21 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
 import { PaymentRecordTable, SubscriptionTable } from '@/lib/db/pg/schema.pg';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
-});
+// Initialize Stripe lazily to avoid build-time issues
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripe = new Stripe(secretKey, {
+      apiVersion: '2025-09-30.clover',
+    });
+  }
+  return stripe;
+}
 
 export class StripeService {
   static async createCoupon(params: {
@@ -17,7 +29,7 @@ export class StripeService {
     maxRedemptions?: number;
     redeemBy?: number;
   }) {
-    return await stripe.coupons.create({
+    return await getStripe().coupons.create({
       id: params.id,
       percent_off: params.percentOff,
       amount_off: params.amountOff,
@@ -34,7 +46,7 @@ export class StripeService {
     maxRedemptions?: number;
     firstTimeTransaction?: boolean;
   }) {
-    return await stripe.promotionCodes.create({
+    return await getStripe().promotionCodes.create({
       coupon: params.couponId,
       code: params.code,
       max_redemptions: params.maxRedemptions,
@@ -96,19 +108,19 @@ export class StripeService {
       throw new Error('Invalid payment type');
     }
 
-    return await stripe.checkout.sessions.create(sessionConfig);
+    return await getStripe().checkout.sessions.create(sessionConfig);
   }
 
   static async getPaymentIntent(paymentIntentId: string) {
-    return await stripe.paymentIntents.retrieve(paymentIntentId);
+    return await getStripe().paymentIntents.retrieve(paymentIntentId);
   }
 
   static async getSubscription(subscriptionId: string) {
-    return await stripe.subscriptions.retrieve(subscriptionId);
+    return await getStripe().subscriptions.retrieve(subscriptionId);
   }
 
   static async cancelSubscription(subscriptionId: string) {
-    return await stripe.subscriptions.cancel(subscriptionId);
+    return await getStripe().subscriptions.cancel(subscriptionId);
   }
 
   static async createCustomer(params: {
@@ -116,7 +128,7 @@ export class StripeService {
     name?: string;
     metadata?: Record<string, string>;
   }) {
-    return await stripe.customers.create({
+    return await getStripe().customers.create({
       email: params.email,
       name: params.name,
       metadata: params.metadata,
@@ -124,7 +136,7 @@ export class StripeService {
   }
 
   static async getCustomer(customerId: string) {
-    return await stripe.customers.retrieve(customerId);
+    return await getStripe().customers.retrieve(customerId);
   }
 
   static async updateCustomer(customerId: string, params: {
@@ -132,7 +144,7 @@ export class StripeService {
     name?: string;
     metadata?: Record<string, string>;
   }) {
-    return await stripe.customers.update(customerId, params);
+    return await getStripe().customers.update(customerId, params);
   }
 
   static async recordPayment(params: {
