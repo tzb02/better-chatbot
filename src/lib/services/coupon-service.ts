@@ -10,8 +10,8 @@ export class CouponService {
       percentOff,
       duration: 'once',
       maxRedemptions: options?.maxRedemptions,
-      redeemBy: options?.redeemBy?.getTime() / 1000,
-    });
+      redeemBy: options?.redeemBy ? Math.floor(options.redeemBy.getTime() / 1000) : undefined,
+    } as any);
   }
 
   static async createFixedAmountDiscount(code: string, amountOff: number, options?: {
@@ -23,8 +23,8 @@ export class CouponService {
       amountOff,
       duration: 'once',
       maxRedemptions: options?.maxRedemptions,
-      redeemBy: options?.redeemBy?.getTime() / 1000,
-    });
+      redeemBy: options?.redeemBy ? Math.floor(options.redeemBy.getTime() / 1000) : undefined,
+    } as any);
   }
 
   static async createRecurringDiscount(code: string, percentOff: number, durationInMonths: number, options?: {
@@ -37,8 +37,8 @@ export class CouponService {
       duration: 'repeating',
       durationInMonths,
       maxRedemptions: options?.maxRedemptions,
-      redeemBy: options?.redeemBy?.getTime() / 1000,
-    });
+      redeemBy: options?.redeemBy ? Math.floor(options.redeemBy.getTime() / 1000) : undefined,
+    } as any);
   }
 
   static async createFreeTrialExtension(code: string, _additionalDays: number, options?: {
@@ -51,7 +51,7 @@ export class CouponService {
       percentOff: 100, // 100% off
       duration: 'once', // Applied once to extend trial
       maxRedemptions: options?.maxRedemptions,
-      redeemBy: options?.redeemBy?.getTime() / 1000,
+      redeemBy: options?.redeemBy ? options.redeemBy.getTime() / 1000 : undefined,
     });
   }
 
@@ -64,7 +64,7 @@ export class CouponService {
       code,
       maxRedemptions: options?.maxRedemptions,
       firstTimeTransaction: options?.firstTimeTransaction,
-    });
+    } as any);
   }
 
   // Pre-defined coupon creation methods

@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { getSession } from '@/lib/auth/server';
 import { PaymentStatusService } from '@/lib/services/payment-status-service';
-import { UserEntity } from '@/lib/db/pg/schema.pg';
 import { Loader } from 'lucide-react';
 
 interface PaymentGateProps {
@@ -12,7 +11,7 @@ interface PaymentGateProps {
 }
 
 export function PaymentGate({ children }: PaymentGateProps) {
-  const [user, setUser] = useState<UserEntity | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -22,7 +21,8 @@ export function PaymentGate({ children }: PaymentGateProps) {
 
   const checkAccess = async () => {
     try {
-      const currentUser = await getCurrentUser();
+      const session = await getSession();
+      const currentUser = session?.user || null;
       setUser(currentUser);
 
       if (currentUser) {

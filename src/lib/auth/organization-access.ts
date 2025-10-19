@@ -1,4 +1,4 @@
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
 import { OrganizationMemberTable, McpServerPermissionTable, McpServerTable } from '@/lib/db/pg/schema.pg';
 
@@ -37,7 +37,7 @@ export class OrganizationAccessControl {
         .where(and(
           eq(McpServerPermissionTable.mcpServerId, serverId),
           eq(McpServerPermissionTable.organizationId, member.organizationId),
-          eq(McpServerPermissionTable.permissions.canUse, true)
+          eq((McpServerPermissionTable.permissions as any).canUse, true)
         ))
         .limit(1);
 
@@ -53,7 +53,7 @@ export class OrganizationAccessControl {
       .where(and(
         eq(McpServerPermissionTable.mcpServerId, serverId),
         eq(McpServerPermissionTable.userId, userId),
-        eq(McpServerPermissionTable.permissions.canUse, true)
+        eq((McpServerPermissionTable.permissions as any).canUse, true)
       ))
       .limit(1);
 
@@ -147,7 +147,7 @@ export class OrganizationAccessControl {
         eq(OrganizationMemberTable.organizationId, organizationId),
         or(
           eq(OrganizationMemberTable.role, 'account_owner'),
-          eq(OrganizationMemberTable.permissions.invite_members, true)
+          eq((OrganizationMemberTable.permissions as any).invite_members, true)
         )
       ))
       .limit(1);
@@ -170,7 +170,7 @@ export class OrganizationAccessControl {
         visibility: McpServerTable.visibility,
         createdAt: McpServerTable.createdAt,
         updatedAt: McpServerTable.updatedAt,
-        accessType: 'owned',
+        accessType: sql`'owned'`,
       })
       .from(McpServerTable)
       .where(eq(McpServerTable.userId, userId));
@@ -184,7 +184,7 @@ export class OrganizationAccessControl {
       .where(eq(OrganizationMemberTable.userId, userId))
       .limit(1);
 
-    let organizationServers = [];
+    let organizationServers: any[] = [];
     if (member) {
       // Get organization-shared servers
       organizationServers = await db
@@ -197,13 +197,13 @@ export class OrganizationAccessControl {
           visibility: McpServerTable.visibility,
           createdAt: McpServerTable.createdAt,
           updatedAt: McpServerTable.updatedAt,
-          accessType: 'organization',
+          accessType: sql`'organization'`,
         })
         .from(McpServerPermissionTable)
         .innerJoin(McpServerTable, eq(McpServerPermissionTable.mcpServerId, McpServerTable.id))
         .where(and(
           eq(McpServerPermissionTable.organizationId, member.organizationId),
-          eq(McpServerPermissionTable.permissions.canUse, true)
+          eq((McpServerPermissionTable.permissions as any).canUse, true)
         ));
     }
 
@@ -218,16 +218,16 @@ export class OrganizationAccessControl {
         visibility: McpServerTable.visibility,
         createdAt: McpServerTable.createdAt,
         updatedAt: McpServerTable.updatedAt,
-        accessType: 'shared',
+        accessType: sql`'shared'`,
       })
       .from(McpServerPermissionTable)
       .innerJoin(McpServerTable, eq(McpServerPermissionTable.mcpServerId, McpServerTable.id))
       .where(and(
         eq(McpServerPermissionTable.userId, userId),
-        eq(McpServerPermissionTable.permissions.canUse, true)
+        eq((McpServerPermissionTable.permissions as any).canUse, true)
       ));
 
-    return [...ownedServers, ...organizationServers, ...sharedServers];
+    return [...ownedServers, ...organizationServers, ...sharedServers] as any;
   }
 
   /**
@@ -275,7 +275,7 @@ export class OrganizationAccessControl {
 
       if (orgPermission) {
         return {
-          ...orgPermission.permissions,
+          ...(orgPermission.permissions as any),
           accessType: 'organization',
         };
       }
@@ -293,7 +293,7 @@ export class OrganizationAccessControl {
 
     if (userPermission) {
       return {
-        ...userPermission.permissions,
+        ...(userPermission.permissions as any),
         accessType: 'shared',
       };
     }

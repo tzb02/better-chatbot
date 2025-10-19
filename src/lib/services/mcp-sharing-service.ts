@@ -125,7 +125,7 @@ export class McpSharingService {
     // Filter based on user permissions
     return permissions.filter(permission => {
       // Organization members can use shared servers
-      return permission.permission.permissions.canUse;
+      return (permission.permission.permissions as any).canUse;
     });
   }
 
@@ -141,7 +141,7 @@ export class McpSharingService {
       .where(eq(McpServerPermissionTable.userId, userId));
 
     return permissions.filter(permission => {
-      return permission.permission.permissions.canUse;
+      return (permission.permission.permissions as any).canUse;
     });
   }
 
@@ -213,7 +213,7 @@ export class McpSharingService {
       .update(McpServerPermissionTable)
       .set({
         permissions: {
-          ...permission.permissions,
+          ...(permission.permissions as any),
           ...updates,
         },
         grantedAt: new Date(),

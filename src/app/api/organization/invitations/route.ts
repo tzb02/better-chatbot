@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/server';
 import { eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';

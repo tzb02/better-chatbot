@@ -1,8 +1,7 @@
-import { NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
-import { OrganizationMemberTable, OrganizationTable, UserTable } from '@/lib/db/pg/schema.pg';
+import { OrganizationMemberTable, UserTable } from '@/lib/db/pg/schema.pg';
 
 export async function GET() {
   try {

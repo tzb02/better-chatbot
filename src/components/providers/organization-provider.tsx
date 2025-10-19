@@ -45,7 +45,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isOwner = member?.role === 'account_owner';
-  const canInviteMembers = isOwner || member?.permissions?.includes('invite_members');
+  const canInviteMembers = isOwner || (member?.permissions as string[])?.includes('invite_members');
 
   return (
     <OrganizationContext.Provider

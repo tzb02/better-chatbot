@@ -8,7 +8,7 @@ import { PaymentStatusService } from '@/lib/services/payment-status-service';
 import { sendWelcomeEmail } from '@/lib/services/email-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-09-30.clover',
 });
 
 export async function POST(request: NextRequest) {
@@ -62,7 +62,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   console.log('Processing payment_intent.succeeded:', paymentIntent.id);
 
   const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
-  const userEmail = customer.email;
+  const userEmail = (customer as any).email;
 
   if (!userEmail) {
     console.error('No email found for customer:', paymentIntent.customer);
@@ -111,7 +111,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   console.log('Processing customer.subscription.created:', subscription.id);
 
   const customer = await stripe.customers.retrieve(subscription.customer as string);
-  const userEmail = customer.email;
+  const userEmail = (customer as any).email;
 
   if (!userEmail) return;
 
@@ -130,8 +130,8 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     stripeCustomerId: subscription.customer as string,
     stripePriceId: subscription.items.data[0].price.id,
     status: subscription.status,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+    currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : undefined,
     trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -147,8 +147,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   await StripeService.updateSubscription(subscription.id, {
     status: subscription.status,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+    currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
     trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : undefined,
     trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -167,9 +167,9 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   console.log('Processing invoice.payment_succeeded:', invoice.id);
 
   // Handle successful recurring payments
-  if (invoice.subscription) {
+  if ((invoice as any).subscription) {
     // Update subscription status if needed
-    await StripeService.updateSubscription(invoice.subscription as string, {
+    await StripeService.updateSubscription((invoice as any).subscription as string, {
       status: 'active',
     });
   }
@@ -181,7 +181,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   // Handle failed payments
   if (invoice.customer) {
     const customer = await stripe.customers.retrieve(invoice.customer as string);
-    const userEmail = customer.email;
+    const userEmail = (customer as any).email;
 
     if (userEmail) {
       const [user] = await db

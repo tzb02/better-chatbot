@@ -1,10 +1,10 @@
 import Stripe from 'stripe';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/pg/db.pg';
-import { PaymentRecordTable, SubscriptionTable, UserPaymentStatusTable } from '@/lib/db/pg/schema.pg';
+import { PaymentRecordTable, SubscriptionTable } from '@/lib/db/pg/schema.pg';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-09-30.clover',
 });
 
 export class StripeService {
@@ -25,7 +25,7 @@ export class StripeService {
       duration_in_months: params.durationInMonths,
       max_redemptions: params.maxRedemptions,
       redeem_by: params.redeemBy,
-    });
+    } as any);
   }
 
   static async createPromotionCode(params: {
@@ -41,7 +41,7 @@ export class StripeService {
       restrictions: {
         first_time_transaction: params.firstTimeTransaction,
       },
-    });
+    } as any);
   }
 
   static async createCheckoutSession(params: {
@@ -149,6 +149,7 @@ export class StripeService {
       stripeCustomerId: params.stripeCustomerId,
       amount: params.amount,
       paymentType: params.paymentType,
+      status: 'succeeded',
       metadata: params.metadata || {},
     }).returning();
 

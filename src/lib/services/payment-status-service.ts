@@ -71,11 +71,11 @@ export class PaymentStatusService {
     hasCompletedPayment: boolean;
     setupFeePaid: boolean;
     subscriptionActive: boolean;
-    trialEndsAt: Date;
+    trialEndsAt: Date | null;
     lastPaymentAt: Date;
     paymentFailureCount: number;
-    blockedAt: Date;
-    blockedReason: string;
+    blockedAt: Date | null;
+    blockedReason: string | null;
   }>) {
     await db
       .update(UserPaymentStatusTable)

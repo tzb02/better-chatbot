@@ -49,13 +49,8 @@ export class OrganizationPaymentService {
       throw new Error('Organization does not have an active subscription');
     }
 
-    // Calculate cost ($10 per seat per month)
-    const _monthlyCost = additionalSeats * 10 * 100; // in cents
-
-    // Get current subscription from Stripe
-    const _subscription = await StripeService.getSubscription(org.subscriptionId);
-
     // Update subscription with additional seats
+    // TODO: Implement subscription update logic based on Stripe price structure
     const updatedSubscription = await StripeService.updateSubscription(org.subscriptionId, {
       // Note: This would need to be implemented based on your Stripe price structure
       // For now, this is a placeholder for the logic
@@ -93,9 +88,11 @@ export class OrganizationPaymentService {
 
     // Update subscription in Stripe
     if (org.subscriptionId) {
-      const _subscription = await StripeService.getSubscription(org.subscriptionId);
       // Update subscription items to reduce quantity
       // This would need to be implemented based on your Stripe setup
+      await StripeService.updateSubscription(org.subscriptionId, {
+        // TODO: Implement subscription item quantity reduction
+      });
     }
 
     // Update organization
